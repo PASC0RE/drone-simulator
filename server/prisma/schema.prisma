@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum DroneType {
+  MILITARY
+  CIVILIAN
+}
+
+model Drone {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  type        DroneType
+  weight      Float     // kilograms
+  maxSpeed    Float     // km/h
+  batteryLife Float     // minutes of flight (endurance)
+  modelUrl    String    // path to the .gltf file served by the frontend
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("drones")
+}

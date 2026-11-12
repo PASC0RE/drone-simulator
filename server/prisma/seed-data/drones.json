@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Falcon R4 Recon Quadcopter",
+    "type": "CIVILIAN",
+    "weight": 1.4,
+    "maxSpeed": 68,
+    "batteryLife": 38,
+    "modelUrl": "/assets/models/falcon-r4.gltf",
+    "description": "Agile reconnaissance quadcopter with a stabilised camera gimbal. Ideal for search-and-rescue, mapping and inspection missions. Excellent hover stability and quick, responsive handling."
+  },
+  {
+    "name": "Hawk-X Fixed-Wing UAV",
+    "type": "MILITARY",
+    "weight": 24.0,
+    "maxSpeed": 150,
+    "batteryLife": 240,
+    "modelUrl": "/assets/models/hawk-x.gltf",
+    "description": "Long-endurance fixed-wing military UAV built for wide-area surveillance. Cannot hover: it needs continuous forward speed to stay airborne, which makes it very different to fly than a multirotor."
+  },
+  {
+    "name": "Sparrow Tactical Micro-drone",
+    "type": "MILITARY",
+    "weight": 0.18,
+    "maxSpeed": 45,
+    "batteryLife": 22,
+    "modelUrl": "/assets/models/sparrow-micro.gltf",
+    "description": "Palm-sized tactical micro-drone for close-range indoor and urban scouting. Extremely light and nimble, but easily pushed around by wind and short on battery."
+  }
+]
