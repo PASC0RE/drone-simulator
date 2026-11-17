@@ -1,17 +1,10 @@
-const LABELS = {
-  loading: 'Loading model…',
-  ready: 'Model loaded',
-  fallback: 'Placeholder drone',
-};
+import { useT } from '../../../i18n/index.js';
+import { kg, mins } from '../../catalog/lib/droneInfo.js';
 
-export default function StatusOverlay({
-  droneName,
-  specs,
-  modelStatus,
-  modelError,
-  apiWarning,
-  onRetry,
-}) {
+const BADGE = { loading: 'badge.loading', ready: 'badge.ready', fallback: 'badge.fallback' };
+
+export default function StatusOverlay({ droneName, specs, modelStatus, modelError, apiWarning, onRetry }) {
+  const t = useT();
   return (
     <div className="overlay-top">
       <div className="panel">
@@ -19,25 +12,28 @@ export default function StatusOverlay({
         {specs && (
           <div>
             <small>
-              {specs.weight} kg · {specs.maxSpeed} km/h · {specs.batteryLife} min
+              {kg(specs.weight)} · {specs.maxSpeed} {t('u.kmh')} · {mins(specs.batteryLife)}
             </small>
           </div>
         )}
-        <span className={`badge ${modelStatus}`}>{LABELS[modelStatus]}</span>
+        <span className={`badge ${modelStatus}`}>{t(BADGE[modelStatus])}</span>
       </div>
 
       {apiWarning && (
         <div className="panel warn">
-          <strong>API problem</strong>
+          <strong>{t('sim.apiProblem')}</strong>
           <p>{apiWarning}</p>
         </div>
       )}
 
       {modelStatus === 'fallback' && modelError && (
-        <div className="panel warn">
-          <strong>Could not load the 3D model</strong>
-          <p>{modelError}</p>
-          {onRetry && <button onClick={onRetry}>Retry</button>}
+        <div className="panel">
+          <small>{t('sim.model')}</small>
+          {onRetry && (
+            <div style={{ marginTop: 6 }}>
+              <button onClick={onRetry} title={modelError}>{t('sim.retryModel')}</button>
+            </div>
+          )}
         </div>
       )}
     </div>

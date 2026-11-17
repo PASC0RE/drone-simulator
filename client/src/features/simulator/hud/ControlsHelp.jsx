@@ -1,41 +1,43 @@
 import { useSimulatorStore } from '../store/simulatorStore.js';
+import { useT } from '../../../i18n/index.js';
 
-const COMMON = [
-  ['W / S', 'Pitch forward / back'],
-  ['Space / ↑', 'Throttle up'],
-  ['Shift / ↓', 'Throttle down'],
+export const COMMON = [
+  ['W / S', 'k.pitch'],
+  ['Space / ↑', 'k.up'],
+  ['Shift / ↓', 'k.down'],
 ];
-const STANDARD = [
-  ['A / D', 'Roll (slide left / right)'],
-  ['Q / E', 'Turn left / right'],
+export const STANDARD = [
+  ['A / D', 'k.roll'],
+  ['Q / E', 'k.turn'],
 ];
-const ARCADE = [
-  ['A / D', 'Turn left / right'],
-  ['Q / E', 'Slide left / right'],
+export const ARCADE = [
+  ['A / D', 'k.turn'],
+  ['Q / E', 'k.slide'],
 ];
-const OTHER = [
-  ['P', 'Autopilot / waypoints'],
-  ['T', 'Swap A/D and Q/E'],
-  ['H', 'Altitude hold on/off'],
-  ['Mouse drag', 'Orbit camera 360°'],
-  ['Wheel', 'Zoom'],
-  ['C', 'Camera: chase / orbit'],
-  ['R', 'Reset'],
+export const OTHER = [
+  ['P', 'k.autopilot'],
+  ['T', 'k.scheme'],
+  ['H', 'k.hold'],
+  ['kk.drag', 'k.orbit'],
+  ['kk.wheel', 'k.zoom'],
+  ['C', 'k.cam'],
+  ['R', 'k.reset'],
 ];
 
-export default function ControlsHelp() {
+export default function ControlsHelp({ hideAutopilot = false }) {
+  const t = useT();
   const scheme = useSimulatorStore((s) => s.controlScheme);
-  const rows = [...COMMON, ...(scheme === 'arcade' ? ARCADE : STANDARD), ...OTHER];
+  const rows = [...COMMON, ...(scheme === 'arcade' ? ARCADE : STANDARD), ...OTHER].filter(([key]) => !(hideAutopilot && key === 'P'));
 
   return (
     <div className="panel help">
-      <strong>Controls ({scheme})</strong>
+      <strong>{t('ctl.title', { scheme: t(`scheme.${scheme}`) })}</strong>
       <table>
         <tbody>
           {rows.map(([key, action]) => (
             <tr key={key}>
-              <td><kbd>{key}</kbd></td>
-              <td>{action}</td>
+              <td><kbd>{t(key)}</kbd></td>
+              <td>{t(action)}</td>
             </tr>
           ))}
         </tbody>

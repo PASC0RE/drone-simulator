@@ -27,6 +27,7 @@ export const useSimulatorStore = create((set) => ({
 
   // ----- autopilot / waypoint mission -----
   autopilot: false,
+  autopilotLocked: false,      // true in the Sun Run challenge: no autopilot allowed
   waypointAltitude: 10,        // altitude [m] given to the next waypoint you place
   waypoints: [],               // { id, x, y (altitude above ground), z }
   nextWaypointId: 1,
@@ -47,8 +48,11 @@ export const useSimulatorStore = create((set) => ({
       missionProgress: INITIAL_PROGRESS,
     })),
 
+  setAutopilotLocked: (autopilotLocked) =>
+    set({ autopilotLocked, ...(autopilotLocked ? { autopilot: false, missionStatus: 'idle' } : {}) }),
+
   toggleAutopilot: () =>
-    set((s) => ({
+    set((s) => (s.autopilotLocked ? s : {
       autopilot: !s.autopilot,
       missionStatus: 'idle', // leaving / entering the mode always stops a running mission
       missionMessage: '',

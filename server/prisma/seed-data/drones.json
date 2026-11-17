@@ -25,5 +25,68 @@
     "batteryLife": 22,
     "modelUrl": "/assets/models/sparrow-micro.gltf",
     "description": "Palm-sized tactical micro-drone for close-range indoor and urban scouting. Extremely light and nimble, but easily pushed around by wind and short on battery."
+  },
+  {
+    "name": "Vortex FPV Racing Quad",
+    "type": "CIVILIAN",
+    "weight": 0.65,
+    "maxSpeed": 140,
+    "batteryLife": 9,
+    "modelUrl": "/assets/models/vortex-fpv.gltf",
+    "description": "Stripped-down racing quad built for speed and sharp turns. Huge power for its weight, but the battery only lasts a few minutes, so every lap counts."
+  },
+  {
+    "name": "Atlas Heavy-lift Hexacopter",
+    "type": "CIVILIAN",
+    "weight": 18.0,
+    "maxSpeed": 55,
+    "batteryLife": 28,
+    "modelUrl": "/assets/models/atlas-hex.gltf",
+    "description": "Six-rotor workhorse that carries survey gear and cargo. It is slow to turn and slow to stop, but very steady in the air."
+  },
+  {
+    "name": "Sentinel Patrol Octocopter",
+    "type": "MILITARY",
+    "weight": 9.5,
+    "maxSpeed": 72,
+    "batteryLife": 55,
+    "modelUrl": "/assets/models/sentinel-octo.gltf",
+    "description": "Eight-rotor patrol drone for perimeter watch and long observation flights. Heavy and stable, with endurance well above the small quads."
+  },
+  {
+    "name": "Courier D6 Delivery Drone",
+    "type": "CIVILIAN",
+    "weight": 6.5,
+    "maxSpeed": 60,
+    "batteryLife": 35,
+    "modelUrl": "/assets/models/courier-d6.gltf",
+    "description": "Mid-size delivery drone for parcels across town. Predictable handling and a comfortable cruise speed make it a good first heavy drone."
+  },
+  {
+    "name": "Terra AG-10 Crop Sprayer",
+    "type": "CIVILIAN",
+    "weight": 25.0,
+    "maxSpeed": 28,
+    "batteryLife": 18,
+    "modelUrl": "/assets/models/terra-ag10.gltf",
+    "description": "Large agricultural drone made to fly slow and low over fields. Very heavy and slow to respond, so plan every turn early."
+  },
+  {
+    "name": "Skimmer Cinema Camera Drone",
+    "type": "CIVILIAN",
+    "weight": 4.2,
+    "maxSpeed": 75,
+    "batteryLife": 30,
+    "modelUrl": "/assets/models/skimmer-cinema.gltf",
+    "description": "Smooth, quiet camera platform for film and photography. Gentle control response and a solid battery for long takes."
+  },
+  {
+    "name": "Raptor Rapid-Response Scout",
+    "type": "MILITARY",
+    "weight": 3.2,
+    "maxSpeed": 110,
+    "batteryLife": 25,
+    "modelUrl": "/assets/models/raptor-scout.gltf",
+    "description": "Fast scout for getting eyes on a location quickly. Quick to accelerate and agile, with a medium battery."
   }
 ]

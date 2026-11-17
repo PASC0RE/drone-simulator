@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, useGLTF } from '@react-three/drei';
 
@@ -16,13 +16,31 @@ import ControlsHelp from './hud/ControlsHelp.jsx';
 import MissionPanel from './hud/MissionPanel.jsx';
 import WaypointLayer from './navigation/WaypointLayer.jsx';
 import { mapSpecsToPhysics } from './physics/specMapper.js';
+import { useSimulatorStore } from './store/simulatorStore.js';
+import ChallengeWorld from '../challenge/ChallengeWorld.jsx';
+import ChallengeLayer from '../challenge/ChallengeLayer.jsx';
+import ChallengeHUD from '../challenge/ChallengeHUD.jsx';
+import { makeCourse } from '../challenge/course.js';
 
-export default function SimulatorCanvas({ drone, apiWarning }) {
+export default function SimulatorCanvas({ drone, apiWarning, toolbar = null, mode = 'free' }) {
+  const challenge = mode === 'challenge';
   const modelUrl = drone?.modelUrl ?? null;
-  const droneName = drone?.name ?? 'Unknown drone';
+  const droneName = drone?.name ?? '—';
 
   // database specs -> physics parameters (this is why each drone flies differently)
   const params = useMemo(() => mapSpecsToPhysics(drone), [drone]);
+
+  const [seed, setSeed] = useState(1);
+  const course = useMemo(
+    () => (challenge ? makeCourse({ seed, vmax: params.maxSpeed }) : null),
+    [challenge, seed, params.maxSpeed]
+  );
+
+  // no autopilot in the challenge (it would fly the course for you)
+  useEffect(() => {
+    useSimulatorStore.getState().setAutopilotLocked(challenge);
+    return () => useSimulatorStore.getState().setAutopilotLocked(false);
+  }, [challenge]);
 
   const droneRef = useRef(null);
   const rotorSpeedRef = useRef(0);
@@ -47,42 +65,44 @@ export default function SimulatorCanvas({ drone, apiWarning }) {
   };
 
   return (
-    <div className="sim">
+    <div className={`sim ${challenge ? 'challenge' : ''}`}>
       <Canvas
         shadows
         dpr={[1, 2]}
         camera={{ fov: 60, near: 0.1, far: 2000, position: [0, 8, 14] }}
       >
-        <World targetRef={droneRef} />
+        {challenge ? <ChallengeWorld course={course} targetRef={droneRef} /> : <World targetRef={droneRef} />}
 
         {/* The rig must come BEFORE the camera so it moves first each frame */}
         <DroneRig
           groupRef={droneRef}
           params={params}
-          colliders={BUILDING_BOXES}
+          colliders={challenge ? course.colliders : BUILDING_BOXES}
           rotorSpeedRef={rotorSpeedRef}
         >
           <ModelErrorBoundary
             key={retryKey}
             onError={handleError}
-            fallback={<FallbackDrone rotorSpeedRef={rotorSpeedRef} />}
+            fallback={<FallbackDrone rotorSpeedRef={rotorSpeedRef} drone={drone} />}
           >
             <Suspense fallback={<LoadingPlaceholder />}>
               {modelUrl ? (
                 <DroneModel url={modelUrl} onReady={handleReady} />
               ) : (
-                <FallbackDrone rotorSpeedRef={rotorSpeedRef} />
+                <FallbackDrone rotorSpeedRef={rotorSpeedRef} drone={drone} />
               )}
             </Suspense>
           </ModelErrorBoundary>
         </DroneRig>
 
-        <WaypointLayer />
+        {challenge ? <ChallengeLayer course={course} droneRef={droneRef} /> : <WaypointLayer />}
 
         <FollowCamera targetRef={droneRef} />
       </Canvas>
 
       <Loader />
+
+      {toolbar}
 
       <StatusOverlay
         droneName={droneName}
@@ -92,9 +112,18 @@ export default function SimulatorCanvas({ drone, apiWarning }) {
         apiWarning={apiWarning}
         onRetry={modelUrl ? handleRetry : null}
       />
-      <ControlsHelp />
-      <MissionPanel />
-      <FlightHUD maxSpeedMs={params.maxSpeed} />
+      <ControlsHelp hideAutopilot={challenge} />
+      {challenge ? (
+        <ChallengeHUD
+          course={course}
+          seed={seed}
+          onNewCourse={() => setSeed((n) => (n % 99) + 1)}
+          bestKey={`${drone?.id ?? 0}:${seed}`}
+        />
+      ) : (
+        <MissionPanel />
+      )}
+      <FlightHUD maxSpeedMs={params.maxSpeed} challenge={challenge} />
     </div>
   );
 }

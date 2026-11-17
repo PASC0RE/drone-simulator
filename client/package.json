@@ -8,13 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:physics": "node tools/physics-check.mjs",
-    "test:autopilot": "node tools/autopilot-check.mjs"
+    "test:autopilot": "node tools/autopilot-check.mjs",
+    "test:challenge": "node tools/challenge-check.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
     "@react-three/fiber": "^8.17.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
     "three": "^0.169.0",
     "zustand": "^4.5.5"
   },

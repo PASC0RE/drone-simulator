@@ -50,7 +50,7 @@ export default function DroneRig({ groupRef, params, colliders, rotorSpeedRef, c
       lastNonce.current = store.missionNonce;
       if (state.crashed) {
         mission.current = null;
-        store.setMission('aborted', 'The drone has crashed. Press R to reset it first.');
+        store.setMission('aborted', 'msg.crashedFirst');
       } else {
         mission.current = createMission(state.pos, store.waypoints, params);
       }
@@ -64,7 +64,7 @@ export default function DroneRig({ groupRef, params, colliders, rotorSpeedRef, c
     if (flying && mission.current) {
       if (state.crashed) {
         mission.current = null;
-        store.setMission('aborted', 'The drone crashed during the mission.');
+        store.setMission('aborted', 'msg.crashedDuring');
       } else {
         auto = stepMission(mission.current, state, params, { hold: store.missionStatus === 'paused' });
         if (auto.done && store.missionStatus === 'running') store.setMission('complete');
