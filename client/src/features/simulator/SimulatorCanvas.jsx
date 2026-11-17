@@ -1,8 +1,9 @@
-import { Suspense, useCallback, useRef, useState } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, useGLTF } from '@react-three/drei';
 
 import World from './environment/World.jsx';
+import { BUILDING_BOXES } from './environment/layout.js';
 import DroneRig from './entities/DroneRig.jsx';
 import DroneModel from './entities/DroneModel.jsx';
 import FallbackDrone from './entities/FallbackDrone.jsx';
@@ -10,10 +11,19 @@ import LoadingPlaceholder from './entities/LoadingPlaceholder.jsx';
 import ModelErrorBoundary from './entities/ModelErrorBoundary.jsx';
 import FollowCamera from './camera/FollowCamera.jsx';
 import StatusOverlay from './hud/StatusOverlay.jsx';
+import FlightHUD from './hud/FlightHUD.jsx';
+import ControlsHelp from './hud/ControlsHelp.jsx';
+import { mapSpecsToPhysics } from './physics/specMapper.js';
 
-export default function SimulatorCanvas({ droneName, modelUrl, apiWarning }) {
+export default function SimulatorCanvas({ drone, apiWarning }) {
+  const modelUrl = drone?.modelUrl ?? null;
+  const droneName = drone?.name ?? 'Unknown drone';
+
+  // database specs -> physics parameters (this is why each drone flies differently)
+  const params = useMemo(() => mapSpecsToPhysics(drone), [drone]);
+
   const droneRef = useRef(null);
-  const [autopilot, setAutopilot] = useState(true);
+  const rotorSpeedRef = useRef(0);
   const [retryKey, setRetryKey] = useState(0);
   const [model, setModel] = useState(
     modelUrl
@@ -29,7 +39,7 @@ export default function SimulatorCanvas({ droneName, modelUrl, apiWarning }) {
 
   const handleRetry = () => {
     if (!modelUrl) return;
-    useGLTF.clear(modelUrl); // drop the cached failure so the loader really retries
+    useGLTF.clear(modelUrl);
     setModel({ status: 'loading', error: null });
     setRetryKey((k) => k + 1);
   };
@@ -41,20 +51,25 @@ export default function SimulatorCanvas({ droneName, modelUrl, apiWarning }) {
         dpr={[1, 2]}
         camera={{ fov: 60, near: 0.1, far: 2000, position: [0, 8, 14] }}
       >
-        <World />
+        <World targetRef={droneRef} />
 
         {/* The rig must come BEFORE the camera so it moves first each frame */}
-        <DroneRig groupRef={droneRef} autopilot={autopilot}>
+        <DroneRig
+          groupRef={droneRef}
+          params={params}
+          colliders={BUILDING_BOXES}
+          rotorSpeedRef={rotorSpeedRef}
+        >
           <ModelErrorBoundary
             key={retryKey}
             onError={handleError}
-            fallback={<FallbackDrone />}
+            fallback={<FallbackDrone rotorSpeedRef={rotorSpeedRef} />}
           >
             <Suspense fallback={<LoadingPlaceholder />}>
               {modelUrl ? (
                 <DroneModel url={modelUrl} onReady={handleReady} />
               ) : (
-                <FallbackDrone />
+                <FallbackDrone rotorSpeedRef={rotorSpeedRef} />
               )}
             </Suspense>
           </ModelErrorBoundary>
@@ -63,18 +78,18 @@ export default function SimulatorCanvas({ droneName, modelUrl, apiWarning }) {
         <FollowCamera targetRef={droneRef} />
       </Canvas>
 
-      {/* drei's progress bar while the .gltf is downloading */}
       <Loader />
 
       <StatusOverlay
         droneName={droneName}
+        specs={drone}
         modelStatus={model.status}
         modelError={model.error}
         apiWarning={apiWarning}
-        autopilot={autopilot}
-        onToggleAutopilot={() => setAutopilot((v) => !v)}
         onRetry={modelUrl ? handleRetry : null}
       />
+      <ControlsHelp />
+      <FlightHUD maxSpeedMs={params.maxSpeed} />
     </div>
   );
 }

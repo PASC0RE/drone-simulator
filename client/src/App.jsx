@@ -33,8 +33,7 @@ export default function App() {
 
   return (
     <SimulatorCanvas
-      droneName={drone?.name ?? 'Unknown drone'}
-      modelUrl={drone?.modelUrl ?? null}
+      drone={drone}
       apiWarning={apiError ? `Could not reach the API: ${apiError}` : null}
     />
   );

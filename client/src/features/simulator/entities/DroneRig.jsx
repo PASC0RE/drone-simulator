@@ -2,70 +2,79 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Demo flight path (figure-8) so the chase camera has something to follow.
-// In the next phase this is replaced by keyboard input + physics.
-const RADIUS = 25;
-const OMEGA = 0.4; // path speed (rad/s)
-const BASE_HEIGHT = 6;
+import { useDroneControls } from '../controls/useDroneControls.js';
+import { axesFromKeys } from '../controls/keymap.js';
+import { createFlightState, resetFlightState, stepFlight, getTelemetry } from '../physics/flightModel.js';
+import { STEP } from '../physics/constants.js';
+import { useSimulatorStore } from '../store/simulatorStore.js';
 
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-const damp = (k, dt) => 1 - Math.exp(-k * dt);
-const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+const TELEMETRY_INTERVAL = 0.05; // s  (20 Hz)
 
-export default function DroneRig({ groupRef, autopilot, children }) {
-  const s = useRef({ pathTime: 0, clock: 0, yaw: 0, pitch: 0, roll: 0, started: false });
+/**
+ * Connects keyboard -> flightModel -> Three.js group.
+ * The group's position/rotation are set from the simulated state every frame.
+ */
+export default function DroneRig({ groupRef, params, colliders, rotorSpeedRef, children }) {
+  const keys = useDroneControls();
+  const flight = useRef(createFlightState());
+  const stick = useRef({ forward: 0, right: 0, throttle: 0, yawRight: 0 }); // smoothed input
+  const accumulator = useRef(0);
+  const telemetryTimer = useRef(0);
+  const lastReset = useRef(useSimulatorStore.getState().resetCount);
 
   useFrame((_, delta) => {
     const group = groupRef.current;
     if (!group) return;
 
-    // never let dt reach 0 (first frame can have delta = 0 -> division by zero -> NaN)
-    const dt = Math.min(Math.max(delta, 1 / 240), 0.05);
-    const st = s.current;
+    const store = useSimulatorStore.getState();
+    const state = flight.current;
 
-    st.clock += dt;
-    if (autopilot) st.pathTime += dt;
-
-    const a = st.pathTime * OMEGA;
-
-    // position on a figure-8
-    const x = RADIUS * Math.sin(a);
-    const z = (RADIUS / 2) * Math.sin(2 * a);
-    const y = BASE_HEIGHT + 1.5 * Math.sin(2 * a) + Math.sin(st.clock * 3) * 0.08;
-
-    // velocity -> heading (nose points to -Z when yaw = 0)
-    const vx = RADIUS * Math.cos(a) * OMEGA;
-    const vz = RADIUS * Math.cos(2 * a) * OMEGA;
-
-    let yawRate = 0;
-    if (autopilot) {
-      const targetYaw = Math.atan2(-vx, -vz);
-      if (!st.started) {
-        st.yaw = targetYaw;
-        st.started = true;
-      }
-      let diff = targetYaw - st.yaw;
-      diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // wrap to [-PI, PI]
-      const k = damp(6, dt);
-      st.yaw += diff * k;
-      yawRate = diff * 6; // same as (diff * k) / dt, without dividing
+    if (store.resetCount !== lastReset.current) {
+      lastReset.current = store.resetCount;
+      resetFlightState(state);
+      Object.keys(stick.current).forEach((k) => (stick.current[k] = 0));
     }
 
-    // lean forward when moving, bank into turns
-    const targetPitch = autopilot ? -0.2 : 0;
-    const targetRoll = autopilot ? clamp(yawRate * 0.25, -0.5, 0.5) : 0;
-    st.pitch += (targetPitch - st.pitch) * damp(4, dt);
-    st.roll += (targetRoll - st.roll) * damp(4, dt);
+    const dt = Math.min(Math.max(delta, 1 / 240), 0.1);
 
-    // safety net: if anything ever becomes NaN, skip the frame instead of breaking the scene
-    if (![x, y, z, st.pitch, st.yaw, st.roll].every(Number.isFinite)) {
-      st.yaw = st.pitch = st.roll = 0;
+    // keys are on/off: ramp them like a soft joystick (~0.12 s)
+    const raw = axesFromKeys(keys.current);
+    const ramp = 1 - Math.exp(-8 * dt);
+    for (const axis of Object.keys(stick.current)) {
+      stick.current[axis] += (raw[axis] - stick.current[axis]) * ramp;
+    }
+
+    // fixed-step physics => the same behaviour at 30, 60 or 144 FPS
+    accumulator.current += dt;
+    const input = { ...stick.current, assist: store.assist };
+    while (accumulator.current >= STEP) {
+      stepFlight(state, input, params, STEP, colliders);
+      accumulator.current -= STEP;
+    }
+
+    // never let a NaN reach the scene
+    const finite = [...state.pos, state.pitch, state.roll, state.yaw].every(Number.isFinite);
+    if (!finite) {
+      resetFlightState(state);
       return;
     }
 
-    group.position.set(x, y, z);
-    euler.set(st.pitch, st.yaw, st.roll, 'YXZ');
+    group.position.set(state.pos[0], state.pos[1], state.pos[2]);
+    euler.set(state.pitch, state.yaw, state.roll, 'YXZ');
     group.quaternion.setFromEuler(euler);
+
+    // rotor animation speed (rad/s)
+    if (rotorSpeedRef) {
+      const load = Math.sqrt(Math.max(state.thrust / params.hoverThrust, 0));
+      rotorSpeedRef.current = state.motorsOn ? 10 + 45 * load : 0;
+    }
+
+    telemetryTimer.current += dt;
+    if (telemetryTimer.current >= TELEMETRY_INTERVAL) {
+      telemetryTimer.current = 0;
+      store.setTelemetry(getTelemetry(state, params));
+    }
   });
 
   return <group ref={groupRef}>{children}</group>;

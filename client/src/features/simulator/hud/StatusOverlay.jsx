@@ -6,24 +6,24 @@ const LABELS = {
 
 export default function StatusOverlay({
   droneName,
+  specs,
   modelStatus,
   modelError,
   apiWarning,
-  autopilot,
-  onToggleAutopilot,
   onRetry,
 }) {
   return (
     <div className="overlay-top">
       <div className="panel">
         <h1>{droneName}</h1>
+        {specs && (
+          <div>
+            <small>
+              {specs.weight} kg · {specs.maxSpeed} km/h · {specs.batteryLife} min
+            </small>
+          </div>
+        )}
         <span className={`badge ${modelStatus}`}>{LABELS[modelStatus]}</span>
-        <div className="row" style={{ marginTop: 8 }}>
-          <button onClick={onToggleAutopilot}>
-            {autopilot ? 'Pause demo flight' : 'Resume demo flight'}
-          </button>
-        </div>
-        <small>Phase 3: demo flight only. Keyboard controls come next.</small>
       </div>
 
       {apiWarning && (

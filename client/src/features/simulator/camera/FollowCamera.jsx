@@ -1,52 +1,125 @@
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useSimulatorStore } from '../store/simulatorStore.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const pos = new THREE.Vector3();
 const quat = new THREE.Quaternion();
-const yawQuat = new THREE.Quaternion();
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 const desired = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
+const forward = new THREE.Vector3();
+
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /**
- * Third-person chase camera.
- *  - sits `offset` behind/above the drone, rotated by the drone's YAW only
- *    (so the horizon doesn't tilt when the drone banks or pitches)
- *  - frame-rate independent smoothing (exponential damping)
- *  - looks slightly ahead of the drone
+ * Third-person camera with full 360° orbit.
+ *  - drag the mouse: orbit around the drone (any angle, also from the front / sides)
+ *  - wheel: zoom
+ *  - chase mode (default): after you let go the camera glides back behind the drone
+ *  - orbit mode (press C): the camera keeps the angle you chose and does NOT turn with the drone
+ *
+ * The drone's yaw is used (not pitch/roll) so the horizon never tilts.
  */
 export default function FollowCamera({
   targetRef,
-  offset = [0, 2.5, 7],
-  lookAhead = [0, 0.3, -5],
-  positionLag = 3.5, // higher = camera sticks tighter
+  distance = 7.5,
+  elevation = 0.3, // radians above the horizon
+  positionLag = 4,
   lookLag = 6,
   minHeight = 0.8,
 }) {
+  const { gl } = useThree();
+  const view = useRef({ az: 0, el: elevation, dist: distance, dragging: false, idle: 0 });
   const smoothLook = useRef(new THREE.Vector3());
   const initialised = useRef(false);
+  const lastYaw = useRef(0);
 
+  // ----- mouse input -----
+  useEffect(() => {
+    const el = gl.domElement;
+    const v = view.current;
+    let lastX = 0, lastY = 0;
+
+    const down = (e) => {
+      v.dragging = true; lastX = e.clientX; lastY = e.clientY;
+      el.setPointerCapture?.(e.pointerId);
+    };
+    const move = (e) => {
+      if (!v.dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      v.az = wrap(v.az - dx * 0.006);            // unlimited: full 360 degrees
+      v.el = clamp(v.el + dy * 0.005, -0.2, 1.4); // from just below horizon to almost top-down
+      v.idle = 0;
+    };
+    const up = (e) => { v.dragging = false; el.releasePointerCapture?.(e.pointerId); };
+    const wheel = (e) => {
+      e.preventDefault();
+      v.dist = clamp(v.dist * (1 + Math.sign(e.deltaY) * 0.1), 2.5, 30);
+    };
+
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', wheel, { passive: false });
+    el.style.cursor = 'grab';
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      el.removeEventListener('wheel', wheel);
+    };
+  }, [gl]);
+
+  // ----- per-frame follow -----
   useFrame(({ camera }, delta) => {
     const target = targetRef.current;
     if (!target) return;
 
     const dt = Math.min(Math.max(delta, 1 / 240), 0.1);
+    const v = view.current;
+    const mode = useSimulatorStore.getState().cameraMode;
 
     target.getWorldPosition(pos);
     target.getWorldQuaternion(quat);
-
-    // keep only the heading (yaw) of the drone
     euler.setFromQuaternion(quat, 'YXZ');
-    yawQuat.setFromAxisAngle(UP, euler.y);
+    const yaw = euler.y;
 
-    desired.set(offset[0], offset[1], offset[2]).applyQuaternion(yawQuat).add(pos);
-    desired.y = Math.max(desired.y, minHeight); // never go under the ground
+    // chase mode: when the user is not dragging, drift back behind the drone
+    if (mode === 'chase') {
+      v.idle += dt;
+      if (!v.dragging && v.idle > 1.2) v.az += wrap(0 - v.az) * (1 - Math.exp(-2 * dt));
+      if (!v.dragging && v.idle > 1.2) v.el += (elevation - v.el) * (1 - Math.exp(-2 * dt));
+    }
 
-    lookTarget.set(lookAhead[0], lookAhead[1], lookAhead[2]).applyQuaternion(yawQuat).add(pos);
+    // chase: angle follows the drone's yaw. orbit: fixed in the world, so we cancel yaw changes.
+    let angle;
+    if (mode === 'chase') {
+      angle = yaw + v.az;
+    } else {
+      v.az = wrap(v.az - wrap(yaw - lastYaw.current)); // keep world angle constant
+      angle = yaw + v.az;
+    }
+    lastYaw.current = yaw;
 
-    // safety net: never feed NaN into the camera (it would never recover)
+    const cosE = Math.cos(v.el);
+    desired.set(Math.sin(angle) * cosE * v.dist, Math.sin(v.el) * v.dist, Math.cos(angle) * cosE * v.dist).add(pos);
+    desired.y = Math.max(desired.y, minHeight);
+
+    if (mode === 'chase') {
+      // look a little ahead of the drone
+      forward.set(0, 0.3, -5).applyAxisAngle(UP, yaw);
+      lookTarget.copy(pos).add(forward);
+    } else {
+      lookTarget.copy(pos);
+    }
+
+    // never feed NaN into the camera (it would never recover)
     if (!Number.isFinite(desired.x + desired.y + desired.z + lookTarget.x + lookTarget.y + lookTarget.z)) return;
 
     if (!initialised.current) {

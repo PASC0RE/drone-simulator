@@ -10,30 +10,29 @@ const ROTORS = [
 ];
 
 // Built-in placeholder quadcopter (no asset files needed). Nose = -Z (red marker).
-export default function FallbackDrone() {
+// rotorSpeedRef (rad/s) is written by the flight physics: faster rotors = more thrust.
+export default function FallbackDrone({ rotorSpeedRef }) {
   const rotors = useRef([]);
 
   useFrame((_, delta) => {
+    const speed = rotorSpeedRef ? rotorSpeedRef.current : 30;
     rotors.current.forEach((r, i) => {
-      if (r) r.rotation.y += delta * 40 * (i % 2 === 0 ? 1 : -1);
+      if (r) r.rotation.y += delta * speed * 0.8 * (i % 2 === 0 ? 1 : -1);
     });
   });
 
   return (
     <group>
-      {/* body */}
       <mesh castShadow>
         <boxGeometry args={[0.45, 0.14, 0.45]} />
         <meshStandardMaterial color="#2b2f36" metalness={0.4} roughness={0.5} />
       </mesh>
 
-      {/* front marker */}
       <mesh position={[0, 0.02, -0.26]} castShadow>
         <boxGeometry args={[0.16, 0.08, 0.08]} />
         <meshStandardMaterial color="#e74c3c" emissive="#e74c3c" emissiveIntensity={0.6} />
       </mesh>
 
-      {/* arms */}
       <mesh rotation={[0, Math.PI / 4, 0]} castShadow>
         <boxGeometry args={[1.35, 0.05, 0.07]} />
         <meshStandardMaterial color="#444b55" />
@@ -43,7 +42,6 @@ export default function FallbackDrone() {
         <meshStandardMaterial color="#444b55" />
       </mesh>
 
-      {/* rotors */}
       {ROTORS.map((pos, i) => (
         <group key={i} position={pos}>
           <mesh castShadow>
@@ -56,6 +54,16 @@ export default function FallbackDrone() {
           </mesh>
         </group>
       ))}
+
+      {/* skids, so the drone visibly rests on the ground */}
+      <mesh position={[0.3, -0.1, 0]} castShadow>
+        <boxGeometry args={[0.04, 0.04, 0.6]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
+      <mesh position={[-0.3, -0.1, 0]} castShadow>
+        <boxGeometry args={[0.04, 0.04, 0.6]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
     </group>
   );
 }
