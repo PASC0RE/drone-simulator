@@ -1,9 +1,21 @@
-const ROWS = [
+import { useSimulatorStore } from '../store/simulatorStore.js';
+
+const COMMON = [
   ['W / S', 'Pitch forward / back'],
-  ['A / D', 'Roll left / right'],
   ['Space / ↑', 'Throttle up'],
   ['Shift / ↓', 'Throttle down'],
-  ['Q / E', 'Yaw left / right'],
+];
+const STANDARD = [
+  ['A / D', 'Roll (slide left / right)'],
+  ['Q / E', 'Turn left / right'],
+];
+const ARCADE = [
+  ['A / D', 'Turn left / right'],
+  ['Q / E', 'Slide left / right'],
+];
+const OTHER = [
+  ['P', 'Autopilot / waypoints'],
+  ['T', 'Swap A/D and Q/E'],
   ['H', 'Altitude hold on/off'],
   ['Mouse drag', 'Orbit camera 360°'],
   ['Wheel', 'Zoom'],
@@ -12,12 +24,15 @@ const ROWS = [
 ];
 
 export default function ControlsHelp() {
+  const scheme = useSimulatorStore((s) => s.controlScheme);
+  const rows = [...COMMON, ...(scheme === 'arcade' ? ARCADE : STANDARD), ...OTHER];
+
   return (
     <div className="panel help">
-      <strong>Controls</strong>
+      <strong>Controls ({scheme})</strong>
       <table>
         <tbody>
-          {ROWS.map(([key, action]) => (
+          {rows.map(([key, action]) => (
             <tr key={key}>
               <td><kbd>{key}</kbd></td>
               <td>{action}</td>

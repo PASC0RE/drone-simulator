@@ -80,3 +80,41 @@ kbd {
   .hud-main { grid-template-columns: repeat(2, 1fr); }
   .help { display: none; }
 }
+
+/* ---------- Phase 5: autopilot ---------- */
+.mission {
+  position: absolute; left: 16px; bottom: 228px; z-index: 10; width: 300px; max-height: 52vh;
+  overflow: auto; font-size: 13px; display: flex; flex-direction: column; gap: 8px;
+}
+.mission-head { display: flex; justify-content: space-between; align-items: center; }
+.mission-status { font-weight: 600; }
+.mission-status.running { color: #4fc3f7; }
+.mission-status.paused { color: #f1c40f; }
+.mission-status.complete { color: #2ecc71; }
+.mission-status.aborted { color: #ff5a4d; }
+.mission .small { font-weight: 400; font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.alt-row { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.alt-row input { width: 100%; }
+.wp-help { font-size: 12px; opacity: 0.7; }
+.wp-list { margin: 0; padding: 0; list-style: none; max-height: 140px; overflow: auto; font-variant-numeric: tabular-nums; }
+.wp-list li { display: flex; justify-content: space-between; align-items: center; padding: 3px 6px; border-radius: 6px; }
+.wp-list li.current { background: rgba(255,159,26,0.22); }
+.wp-list li.empty { opacity: 0.55; }
+.wp-list b { display: inline-block; width: 18px; }
+.wp-list .x { padding: 0 8px; line-height: 1.2; }
+.wp-warn { color: #ff8a80; font-size: 12px; }
+.mission .row { flex-wrap: wrap; }
+button.primary { background: #1f7a4a; border-color: #2ecc71; }
+button.primary:hover:not(:disabled) { background: #26925a; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.wp-label {
+  background: rgba(10,14,20,0.8); color: #fff; border: 1px solid #4fc3f7; border-radius: 8px;
+  padding: 2px 8px; font-size: 12px; white-space: nowrap; display: flex; gap: 6px; align-items: baseline;
+}
+.wp-label span { opacity: 0.7; font-size: 11px; font-variant-numeric: tabular-nums; }
+.wp-label.blocked { color: #ff8a80; }
+
+@media (max-width: 700px) {
+  .mission { width: calc(100% - 32px); bottom: 232px; max-height: 38vh; }
+}

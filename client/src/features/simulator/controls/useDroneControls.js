@@ -21,6 +21,8 @@ export function useDroneControls() {
       if (e.repeat) return;
 
       if (e.code === ACTION_KEYS.toggleAssist) useSimulatorStore.getState().toggleAssist();
+      else if (e.code === ACTION_KEYS.toggleAutopilot) useSimulatorStore.getState().toggleAutopilot();
+      else if (e.code === ACTION_KEYS.toggleScheme) useSimulatorStore.getState().toggleScheme();
       else if (e.code === ACTION_KEYS.toggleCamera) useSimulatorStore.getState().toggleCameraMode();
       else if (e.code === ACTION_KEYS.reset) useSimulatorStore.getState().requestReset();
       else pressed.current.add(e.code);

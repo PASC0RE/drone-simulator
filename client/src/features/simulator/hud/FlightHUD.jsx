@@ -20,6 +20,9 @@ export default function FlightHUD({ maxSpeedMs }) {
   const t = useSimulatorStore((s) => s.telemetry);
   const assist = useSimulatorStore((s) => s.assist);
   const cameraMode = useSimulatorStore((s) => s.cameraMode);
+  const mission = useSimulatorStore((s) => s.missionStatus);
+  const waypointCount = useSimulatorStore((s) => s.waypoints.length);
+  const nextWaypoint = useSimulatorStore((s) => s.missionProgress.nextWaypoint);
 
   const batteryTone = t.battery <= 10 ? 'danger' : t.battery <= 20 ? 'warn' : '';
   const speedTone = maxSpeedMs && t.speed > maxSpeedMs * 0.95 ? 'warn' : '';
@@ -31,6 +34,12 @@ export default function FlightHUD({ maxSpeedMs }) {
     banner = { tone: 'danger', text: 'BATTERY DEPLETED: motors off. Press R to reset' };
   } else if (t.battery <= 20) {
     banner = { tone: 'warn', text: `LOW BATTERY: ${t.battery.toFixed(0)}%. Land soon` };
+  } else if (mission === 'running') {
+    banner = { tone: 'info', text: `AUTOPILOT: flying to waypoint ${Math.max(nextWaypoint, 0) + 1} of ${waypointCount}` };
+  } else if (mission === 'paused') {
+    banner = { tone: 'warn', text: 'AUTOPILOT PAUSED: holding position' };
+  } else if (mission === 'complete') {
+    banner = { tone: 'info', text: 'MISSION COMPLETE: hovering at the last waypoint' };
   } else if (t.status === 'LANDED' && t.altitude < 0.3) {
     banner = { tone: 'info', text: 'Hold Space or ↑ to take off' };
   }
@@ -66,7 +75,7 @@ export default function FlightHUD({ maxSpeedMs }) {
           <span>ROLL {signed(t.rollDeg)}°</span>
           <span>THRUST {t.thrustPct.toFixed(0)}%</span>
           <span className={`mode ${assist ? 'on' : 'off'}`}>
-            {assist ? 'ALT HOLD' : 'MANUAL'} (H)
+            {mission === 'running' ? 'AUTOPILOT' : assist ? 'ALT HOLD' : 'MANUAL'} (H)
           </span>
           <span>CAM {cameraMode.toUpperCase()} (C)</span>
           <span>{t.status}</span>

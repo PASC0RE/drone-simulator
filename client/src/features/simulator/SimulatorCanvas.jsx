@@ -13,6 +13,8 @@ import FollowCamera from './camera/FollowCamera.jsx';
 import StatusOverlay from './hud/StatusOverlay.jsx';
 import FlightHUD from './hud/FlightHUD.jsx';
 import ControlsHelp from './hud/ControlsHelp.jsx';
+import MissionPanel from './hud/MissionPanel.jsx';
+import WaypointLayer from './navigation/WaypointLayer.jsx';
 import { mapSpecsToPhysics } from './physics/specMapper.js';
 
 export default function SimulatorCanvas({ drone, apiWarning }) {
@@ -75,6 +77,8 @@ export default function SimulatorCanvas({ drone, apiWarning }) {
           </ModelErrorBoundary>
         </DroneRig>
 
+        <WaypointLayer />
+
         <FollowCamera targetRef={droneRef} />
       </Canvas>
 
@@ -89,6 +93,7 @@ export default function SimulatorCanvas({ drone, apiWarning }) {
         onRetry={modelUrl ? handleRetry : null}
       />
       <ControlsHelp />
+      <MissionPanel />
       <FlightHUD maxSpeedMs={params.maxSpeed} />
     </div>
   );
